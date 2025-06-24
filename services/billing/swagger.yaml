@@ -1,0 +1,827 @@
+---
+swagger: "2.0"
+host: "localhost:8000"
+basePath: "/api/v1.0"
+info:
+  description: An API which supports creation, deletion, listing etc of Billing
+  version: "1.0.0"
+  title: Billing Management API
+  contact:
+    email: diego@cyclops-labs.io
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: statusManagement
+    description: Actions relating to the reporting of the state of the service
+  - name: triggerManagement
+    description: Actions relating to the periodics actions to be triggered in the system
+  - name: bulkManagement
+    description: Actions relating to the bulk generations/retrieval of invoices.
+  - name: invoiceManagement
+    description: Actions relating to the generation and retrieval of invoices.
+
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: X-API-KEY
+  APIKeyParam:
+    type: apiKey
+    in: query
+    name: api_key
+  Keycloak:
+    type: oauth2
+    flow:  accessCode
+    authorizationUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/auth'
+    tokenUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/token'
+    scopes:
+      admin: Admin scope
+      user: User scope
+
+schemes:
+  - http
+  - https
+
+security:
+  - Keycloak: [user,admin]
+  - APIKeyHeader: []
+  - APIKeyParam: []
+
+paths:
+  /status:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: showStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+  /status/{id}:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          enum:
+          - kafka-receiver
+          - kafka-sender
+          - status
+          - trigger
+          - bulk
+          - invoice
+          required: true
+          description: Id of the endpoint to be checked
+
+  /trigger/periodicrun:
+    get:
+      tags:
+        - triggerManagement
+      produces:
+        - application/json
+      summary: Periodic run of the bulk generation of invoices
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: periodicRun
+      responses:
+        '202':
+          description: The request for processing the periodic run had been added to the queue
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+      parameters:
+        - name: today
+          in: query
+          description: Datetime to override the time.now() to simulate other days
+          type: string
+          format: datetime
+
+  /billrun:
+    get:
+      tags:
+        - bulkManagement
+      produces:
+        - application/json
+      summary: Show the status report of the billruns present in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ListBillRuns
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/BillRunList"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: months
+          in: query
+          description: Amount of months to have in the report
+          type: integer
+    put:
+      tags:
+        - bulkManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Try to re-run the failed invoices in all the billruns.
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ReRunAllBillRuns
+      responses:
+        '202':
+          description: The request for processing had been added to the queue
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '404':
+          description: The invoice id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: months
+          in: query
+          description: Amount of months to check for failed invoices.
+          type: integer
+  /billrun/{id}:
+    get:
+      tags:
+        - bulkManagement
+      produces:
+        - application/json
+      summary: Get the status report of the billrun requested
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: GetBillRun
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            $ref: "#/definitions/BillRunReport"
+        '404':
+          description: The invoice id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the invoice to be checked
+          required: true
+          type: string
+          format: uuid
+    put:
+      tags:
+        - bulkManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Try to re-run the failed invoices in the billrun.
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ReRunBillRun
+      responses:
+        '202':
+          description: The request for processing had been added to the queue
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '404':
+          description: The invoice id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the billrun to be re-run.
+          required: true
+          type: string
+          format: uuid
+  /billrun/organization/{id}:
+    get:
+      tags:
+        - bulkManagement
+      produces:
+        - application/json
+      summary: Show the status report of the billruns present in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ListBillRunsByOrganization
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/BillRunList"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the billrun to be re-run.
+          required: true
+          type: string
+        - name: months
+          in: query
+          description: Amount of months to have in the report
+          type: integer
+
+  /invoice:
+    get:
+      tags:
+        - invoiceManagement
+      produces:
+        - application/json
+      summary: Summary for this endpoint
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ListInvoices
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Invoice"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: model
+          in: body
+          description: Invoice model partially filled to use for the filtering of the invoices
+          schema:
+            $ref: "#/definitions/Invoice"
+  /invoice/{id}:
+    get:
+      tags:
+        - invoiceManagement
+      produces:
+        - application/json
+      summary: Summary for this endpoint
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: GetInvoice
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            $ref: "#/definitions/Invoice"
+        '404':
+          description: The invoice id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the invoice to be checked
+          required: true
+          type: string
+          format: uuid
+
+  /invoice/reseller:
+    get:
+      tags:
+        - invoiceManagement
+      produces:
+        - application/json
+      summary: Retrieve resellers' invoices
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ListResellerInvoices
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Invoice"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /invoice/reseller/{id}:
+    get:
+      tags:
+        - invoiceManagement
+      produces:
+        - application/json
+      summary: Retrieve invoices by reseller id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: GetInvoicesByReseller
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Invoice"
+        '404':
+          description: The invoice id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: months
+          in: query
+          description: Amount of months to have in the report
+          type: integer
+    post:
+      tags:
+        - invoiceManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Generate invoice for the provided reseller for the provided time window or last period
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: GenerateInvoiceForReseller
+      responses:
+        '202':
+          description: The request for processing had been added to the queue
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '400':
+          description: Invalid input, object invalid
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: from
+          in: query
+          description: Datetime from which to generate the invoice
+          type: string
+          format: datetime
+        - name: to
+          in: query
+          description: Datetime until which to generate the invoice
+          type: string
+          format: datetime
+
+  /invoice/customer:
+    get:
+      tags:
+        - invoiceManagement
+      produces:
+        - application/json
+      summary: Retrieve customers' invoices
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: ListCustomerInvoices
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Invoice"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /invoice/customer/{id}:
+    get:
+      tags:
+        - invoiceManagement
+      produces:
+        - application/json
+      summary: Retrieve invoices by customer id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: GetInvoicesByCustomer
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Invoice"
+        '404':
+          description: The invoice id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: months
+          in: query
+          description: Amount of months to have in the report
+          type: integer
+    post:
+      tags:
+        - invoiceManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Generate invoice for the provided customer for the provided time window or last period
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: GenerateInvoiceForCustomer
+      responses:
+        '202':
+          description: The request for processing had been added to the queue
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '400':
+          description: Invalid input, object invalid
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: from
+          in: query
+          description: Datetime from which to generate the invoice
+          type: string
+          format: datetime
+        - name: to
+          in: query
+          description: Datetime until which to generate the invoice
+          type: string
+          format: datetime
+
+definitions:
+  ErrorResponse:
+    type: object
+    required:
+      - errorString
+    properties:
+      errorString:
+        type: string
+  ItemCreatedResponse:
+    properties:
+      ApiLink:
+        type: string
+      Message:
+        type: string
+  Metadata:
+    type: object
+    x-go-type:
+      import:
+        package: "gitlab.com/cyclops-utilities/datamodels"
+      type: JSONdb
+  StringArray:
+    x-go-type:
+      import:
+        package: "github.com/lib/pq"
+      type: StringArray
+  Status:
+    type: object
+    required:
+      - SystemState
+    properties:
+      AverageResponseTime:
+        type: number
+        format: double
+      DBState:
+        type: string
+      LastRequest:
+        type: string
+      RequestsBoT:
+        type: integer
+      RequestsLastHour:
+        type: integer
+      RequestsToday:
+        type: integer
+      SystemState:
+        type: string
+
+  BillRun:
+    type: object
+    properties:
+      ID:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"type:uuid;primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      AmountInvoiced:
+        type: number
+        format: double
+        default: 0.0
+        x-go-custom-tag: gorm:"type:numeric(23,13)"
+      CreationTimestamp:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamptz"
+      InvoicesCount:
+        type: integer
+      InvoicesErrorCount:
+        type: integer
+      InvoicesErrorList:
+        $ref: '#/definitions/StringArray'
+        x-go-custom-tag: gorm:"type:text[]"
+      InvoicesList:
+        type: array
+        items:
+          $ref: '#/definitions/InvoiceMetadata'
+        x-go-custom-tag: gorm:"-"
+      InvoicesProcessedCount:
+        type: integer
+      OrganizationsInvolved:
+        $ref: '#/definitions/StringArray'
+        x-go-custom-tag: gorm:"type:text[]"
+      Status:
+        type: string
+        default: QUEUED
+        enum:
+        - ERROR
+        - FINISHED
+        - PROCESSING
+        - QUEUED
+        x-go-custom-tag: gorm:"default:QUEUED"
+      ExecutionType:
+        type: string
+
+  BillRunList:
+    type: object
+    properties:
+      ID:
+        type: string
+        format: uuid
+      AmountInvoiced:
+        type: number
+        format: double
+        default: 0.0
+      CreationTimestamp:
+        type: string
+        format: date-time
+      InvoicesCount:
+        type: integer
+      InvoicesErrorCount:
+        type: integer
+      InvoicesErrorList:
+        $ref: '#/definitions/StringArray'
+        x-go-custom-tag: gorm:"type:text[]"
+      InvoicesProcessedCount:
+        type: integer
+      OrganizationsInvolved:
+        $ref: '#/definitions/StringArray'
+        x-go-custom-tag: gorm:"type:text[]"
+      Status:
+        type: string
+        default: QUEUED
+        enum:
+        - ERROR
+        - FINISHED
+        - PROCESSING
+        - QUEUED
+
+  BillRunReport:
+    type: object
+    properties:
+      ID:
+        type: string
+        format: uuid
+      AmountInvoiced:
+        type: number
+        format: double
+        default: 0.0
+      CreationTimestamp:
+        type: string
+        format: date-time
+      InvoicesCount:
+        type: integer
+      InvoicesErrorCount:
+        type: integer
+      InvoicesErrorList:
+        $ref: '#/definitions/StringArray'
+        x-go-custom-tag: gorm:"type:text[]"
+      InvoicesList:
+        type: array
+        items:
+          $ref: '#/definitions/InvoiceMetadata'
+        x-go-custom-tag: gorm:"-"
+      InvoicesProcessedCount:
+        type: integer
+      Status:
+        type: string
+        default: QUEUED
+        enum:
+        - ERROR
+        - FINISHED
+        - PROCESSING
+        - QUEUED
+
+  Invoice:
+    type: object
+    properties:
+      ID:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"type:uuid;primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      AmountInvoiced:
+        type: number
+        format: double
+        default: 0.0
+        x-go-custom-tag: gorm:"type:numeric(23,13)"
+      BillingContact:
+        type: string
+      BillRunID:
+        type: string
+        format: uuid
+      Currency:
+        type: string
+        default: CHF
+        enum:
+        - CHF
+        - EUR
+        - USD
+      GenerationTimestamp:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamptz"
+      Items:
+        $ref: '#/definitions/Metadata'
+        x-go-custom-tag: gorm:"type:jsonb"
+      OrganizationID:
+        type: string
+      OrganizationName:
+        type: string
+      OrganizationType:
+        type: string
+      PaymentDeadline:
+        type: string
+        format: date
+        x-go-custom-tag: gorm:"type:date"
+      PaymentStatus:
+        type: string
+        default: UNPAID
+        enum:
+        - CANCELLED
+        - PAID
+        - UNPAID
+      PeriodEndDate:
+        type: string
+        format: date
+        x-go-custom-tag: gorm:"type:date"
+      PeriodStartDate:
+        type: string
+        format: date
+        x-go-custom-tag: gorm:"type:date"
+      Status:
+        type: string
+        default: NOT_PROCESSED
+        enum:
+        - ERROR
+        - FINISHED
+        - NOT_PROCESSED
+        - PROCESSING
+        x-go-custom-tag: gorm:"default:NOT_PROCESSED"
+
+  InvoiceMetadata:
+    type: object
+    properties:
+      ID:
+        type: string
+        format: uuid
+      AmountInvoiced:
+        type: number
+        format: double
+        default: 0.0
+      Currency:
+        type: string
+        default: CHF
+        enum:
+        - CHF
+        - EUR
+        - USD
+      OrganizationID:
+        type: string
+      OrganizationName:
+        type: string
+      PaymentDeadline:
+        type: string
+        format: date
+      PaymentStatus:
+        type: string
+        default: UNPAID
+        enum:
+        - CANCELLED
+        - PAID
+        - UNPAID
+      PeriodEndDate:
+        type: string
+        format: date
+      PeriodStartDate:
+        type: string
+        format: date
+      Status:
+        type: string
+        default: NOT_PROCESSED
+        enum:
+        - ERROR
+        - FINISHED
+        - NOT_PROCESSED
+        - PROCESSING
+

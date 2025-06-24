@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'db'
+    static_configs:
+      - targets:
+        ## When on running locally, expand for more VMs setups...
+        - db_exporter:9187
+
+  - job_name: 'services'
+    static_configs:
+      - targets:
+        ## When on running locally, expand for more VMs setups...
+        - billing:9000
+        - cdr:9000
+        - creditsystem:9000
+        - customerdb:9000
+        - eventsengine:9000
+        - planmanger:9000
+        - udr:9000
+
+  - job_name: 'collectors'
+    static_configs:
+      - labels:
+          region: region_1
+      - targets:
+        ## When on running locally, expand for more VMs setups...
+        - serverscollector:9000
+        - networkcollector:9000
+        - objectscollector:9000
+        - blockstoragecollector:9000
+        - prometheuscollector:9000

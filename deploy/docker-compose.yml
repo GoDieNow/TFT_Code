@@ -1,0 +1,340 @@
+version: '3'
+
+services:
+
+  db:
+    image: postgres:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      POSTGRES_PASSWORD: pass1234
+      POSTGRES_DB: cyclops
+      POSTGRES_USER: cyclops
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/var/lib/postgresql
+      # This needs explicit mapping due to https://github.com/docker-library/postgres/blob/4e48e3228a30763913ece952c611e5e9b95c8759/Dockerfile.template#L52
+      - postgresql_data:/var/lib/postgresql/data
+  
+# Commented for a simplistic startup
+#  keycloakdb:
+#    image: postgres
+#    restart: always
+#    networks:
+#     - tftnet
+#    environment:
+#     POSTGRES_DB: keycloak
+#     POSTGRES_USER: keycloak
+#     POSTGRES_PASSWORD: password
+#    volumes:
+#     - keycloak_db_data:/var/lib/postgresql/data
+#
+#  keycloak:
+#    image: quay.io/keycloak/keycloak:latest
+#    restart: always
+#    networks:
+#     - tftnet
+#    environment:
+#     DB_VENDOR: POSTGRES
+#     DB_ADDR: keycloakdb
+#     DB_DATABASE: keycloak
+#     DB_USER: keycloak
+#     DB_SCHEMA: public
+#     DB_PASSWORD: password
+#     KEYCLOAK_USER: admin
+#     KEYCLOAK_PASSWORD: Pass1234
+#     # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
+#     #JDBC_PARAMS: "ssl=true"
+#    depends_on:
+#     - keycloakdb
+#    ports:
+#     - 8080:8080
+
+  zookeeper:
+    image: zookeeper:3.4.9
+    restart: always
+    hostname: zookeeper
+    environment:
+        ZOO_MY_ID: 1
+        ZOO_PORT: 2181
+        ZOO_SERVERS: server.1=zookeeper:2888:3888
+    networks:
+      - tftnet
+    ports:
+      - 2181:2181
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
+
+  kafka:
+    image: confluentinc/cp-kafka:5.4.0
+    restart: always
+    hostname: kafka
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_BROKER_ID: 1
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - tftnet
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+# Commented for a simplistic startup
+#  prometheus:
+#    image: prom/prometheus:latest
+#    restart: always
+#    ports:
+#     - 9090:9090
+#    networks:
+#     - tftnet
+#    volumes:
+#     - prometheus_data:/prometheus
+#     - ./prometheus/:/etc/prometheus/:ro
+#    command:
+#     - '--storage.tsdb.path=/prometheus'
+#     - '--config.file=/etc/prometheus/prometheus.yaml'
+#     - '--web.enable-lifecycle'
+#
+#  db_exporter:
+#    image: wrouesnel/postgres_exporter:latest
+#    restart: always
+#    networks:
+#     - tftnet
+#    environment:
+#     DATA_SOURCE_USER: cyclops
+#     DATA_SOURCE_PASS: pass1234
+#     DATA_SOURCE_URI: "db:5432?sslmode=disable"
+#    depends_on:
+#     - db
+#    ports:
+#     - 9000:9187
+
+  billing:
+    image: tft/billing:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: cdr:8000, customerdb:8000, db:5432
+    depends_on:
+      - cdr
+      - customerdb
+      - db
+#      - keycloak
+    ports:
+      - 8100:8000
+      - 9001:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+  cdr:
+    image: tft/cdr:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: customerdb:8000, db:5432, kafka:9092, planmanager:8000, udr:8000
+    depends_on:
+      - customerdb
+      - db
+      - kafka
+#      - keycloak
+      - planmanager
+      - udr
+    ports:
+      - 8200:8000
+      - 9002:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+  creditsystem:
+    image: tft/credit-system:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: db:5432, kafka:9092
+    depends_on:
+      - db
+      - kafka
+#      - keycloak
+    ports:
+      - 8300:8000
+      - 9003:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+  customerdb:
+    image: tft/customerdb:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: db:5432
+    depends_on:
+      - db
+#      - keycloak
+    ports:
+      - 8400:8000
+      - 9004:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+  eventsengine:
+    image: tft/eventsengine:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: db:5432, kafka:9092
+    depends_on:
+      - db
+      - kafka
+#      - keycloak
+    ports:
+      - 8500:8000
+      - 9005:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+  planmanager:
+    image: tft/plan-manager:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: db:5432
+    depends_on:
+      - db
+#      - keycloak
+    ports:
+      - 8600:8000
+      - 9006:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+  udr:
+    image: tft/udr:latest
+    restart: always
+    networks:
+      - tftnet
+    environment:
+      WAIT_HOSTS: db:5432, eventsengine:8000, kafka:9092
+    depends_on:
+      - db
+      - eventsengine
+      - kafka
+#      - keycloak
+    ports:
+      - 8700:8000
+      - 9007:9000
+    volumes:
+      - ${PWD}/services-config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+# Commented for a simplistic startup
+# Unless you have access to an OpenStack and Ceph setup running them is pointless...
+#  serverscollector:
+#    environment:
+#      WAIT_HOSTS: eventsengine:8000, kafka:9092
+#      WAIT_AFTER_HOSTS: 100
+#    image: tft/servers-collector:latest
+#    restart: always
+#    networks:
+#      - tftnet
+#    depends_on:
+#      - eventsengine
+#      - kafka
+#    ports:
+#      - 9008:9000
+#    restart: always
+#    volumes:
+#      - ${PWD}/collector-config.toml:/config.toml
+#
+# networkcollector:
+#   environment:
+#     WAIT_HOSTS: eventsengine:8000, kafka:9092
+#     WAIT_AFTER_HOSTS: 100
+#   image: tft/network-collector:latest
+#   restart: always
+#   networks:
+#     - tftnet
+#   depends_on:
+#     - eventsengine
+#     - kafka
+#   ports:
+#     - 9009:9000
+#   restart: always
+#   volumes:
+#     - ${PWD}/collector-config.toml:/config.toml
+#
+# objectscollector:
+#   environment:
+#     WAIT_HOSTS: eventsengine:8000, kafka:9092
+#     WAIT_AFTER_HOSTS: 100
+#   image: tft/objects-collector:latest
+#   restart: always
+#   networks:
+#     - tftnet
+#   depends_on:
+#     - eventsengine
+#     - kafka
+#   ports:
+#     - 9009:9000
+#   restart: always
+#   volumes:
+#     - ${PWD}/collector-config.toml:/config.toml
+#
+# blockstoragecollector:
+#   environment:
+#     WAIT_HOSTS: eventsengine:8000, kafka:9092
+#     WAIT_AFTER_HOSTS: 100
+#   image: tft/blockstorage-collector:latest
+#   restart: always
+#   networks:
+#     - tftnet
+#   depends_on:
+#     - eventsengine
+#     - kafka
+#   ports:
+#     - 9010:9000
+#   restart: always
+#   volumes:
+#     - ${PWD}/collector-config.toml:/config.toml
+
+
+networks:
+  tftnet:
+    driver: bridge
+
+volumes:
+  postgresql:
+  postgresql_data:
+# keycloak_db_data:
+  zookeeper_data:
+  zookeeper_datalog:
+  kafka_data:
+# prometheus_data:

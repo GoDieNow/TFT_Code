@@ -1,0 +1,386 @@
+---
+swagger: "2.0"
+host: "localhost:8000"
+basePath: "/api/v1.0"
+info:
+  description: An API which supports creation, deletion, listing etc of UDR
+  version: "1.0.0"
+  title: UDR Management API
+  contact:
+    email: diego@cyclops-labs.io
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: statusManagement
+    description: Actions relating to the reporting of the state of the service
+  - name: triggerManagement
+    description: Actions relating to the periodics actions to be triggered in the system
+  - name: metricsManagement
+    description: Actions relating to the metrics used and controlled by the system
+  - name: usageManagement
+    description: Actions relating to the usage reporting of the accounts of the system
+
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: X-API-KEY
+  APIKeyParam:
+    type: apiKey
+    in: query
+    name: api_key
+  Keycloak:
+    type: oauth2
+    flow:  accessCode
+    authorizationUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/auth'
+    tokenUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/token'
+    scopes:
+      admin: Admin scope
+      user: User scope
+
+schemes:
+  - http
+  - https
+
+security:
+  - Keycloak: [user,admin]
+  - APIKeyHeader: []
+  - APIKeyParam: []
+
+paths:
+  /status:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: showStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+  /status/{id}:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          enum:
+          - kafka-receiver
+          - kafka-sender
+          - status
+          - trigger
+          - metrics
+          - usage
+          required: true
+          description: Id of the endpoint to be checked
+
+  /trigger/compact:
+    get:
+      tags:
+        - triggerManagement
+      produces:
+        - application/json
+      summary: Compactation task trigger
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: execCompactation
+      responses:
+        '200':
+          description: Compactation task executed successfully.
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: from
+          in: query
+          description: Datetime from which to get the usage report
+          type: string
+          format: datetime
+        - name: to
+          in: query
+          description: Datetime until which to get the usage report
+          type: string
+          format: datetime
+        - name: fast_mode
+          in: query
+          description: Switch for using 15m boundaries instead of 8h
+          type: boolean
+
+  /metrics:
+    get:
+      tags:
+        - metricsManagement
+      produces:
+        - application/json
+      summary: List of all metric types processed by the service
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Metric"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /usage:
+    get:
+      tags:
+        - usageManagement
+      produces:
+        - application/json
+      summary: Detailed report covering all accounts within the specified time window
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getSystemUsage
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/UReport"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: from
+          in: query
+          description: Datetime from which to get the usage report
+          type: string
+          format: datetime
+        - name: to
+          in: query
+          description: Datetime until which to get the usage report
+          type: string
+          format: datetime
+        - name: metric
+          in: query
+          description: Metric(s) to get the usage report
+          type: string
+        - name: idlist
+          in: query
+          description: List of ids to be queried
+          type: string
+  /usage/{id}:
+    get:
+      tags:
+        - usageManagement
+      produces:
+        - application/json
+      summary: Detailed report covering of the account associated with the id within the specified time window
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getUsage
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/UReport"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: from
+          in: query
+          description: Datetime from which to get the usage report
+          type: string
+          format: datetime
+        - name: to
+          in: query
+          description: Datetime until which to get the usage report
+          type: string
+          format: datetime
+        - name: metric
+          in: query
+          description: Metric(s) to get the usage report
+          type: string
+
+definitions:
+  ErrorResponse:
+    type: object
+    required:
+      - errorString
+    properties:
+      errorString:
+        type: string
+  Metadata:
+    type: object
+    x-go-type:
+      import:
+        package: "gitlab.com/cyclops-utilities/datamodels"
+      type: JSONdb
+  Status:
+    type: object
+    required:
+      - SystemState
+    properties:
+      AverageResponseTime:
+        type: number
+        format: double
+      DBState:
+        type: string
+      LastRequest:
+        type: string
+      RequestsBoT:
+        type: integer
+      RequestsLastHour:
+        type: integer
+      RequestsToday:
+        type: integer
+      SystemState:
+        type: string
+
+  Metric:
+    type: object
+    properties:
+      Metric:
+        type: string
+        x-go-custom-tag: gorm:"primary_key"
+
+  UReport:
+    type: object
+    properties:
+      AccountId:
+        type: string
+        x-go-custom-tag: gorm:"index"
+      TimeFrom:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"index;type:timestamptz"
+      TimeTo:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"index;type:timestamptz"
+      Usage:
+        type: array
+        x-go-custom-tag: gorm:"-"
+        items:
+          $ref: "#/definitions/UDRReport"
+
+  UDRRecord:
+    type: object
+    properties:
+      AccountId:
+        type: string
+        x-go-custom-tag: gorm:"index"
+      Metadata:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+      ResourceId:
+        type: string
+      ResourceName:
+        type: string
+      ResourceType:
+        type: string
+      TimeFrom:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"index;type:timestamptz"
+      TimeTo:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"index;type:timestamptz"
+      Unit:
+        type: string
+      UsageBreakup:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+
+  UDRReport:
+    type: object
+    properties:
+      Metadata:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+      ResourceId:
+        type: string
+      ResourceName:
+        type: string
+      ResourceType:
+        type: string
+      Unit:
+        type: string
+      UsageBreakup:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+
+  Usage:
+    type: object
+    properties:
+      Account:
+        type: string
+        x-go-custom-tag: gorm:"index"
+      Metadata:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+      ResourceID:
+        type: string
+      ResourceName:
+        type: string
+      ResourceType:
+        type: string
+      Time:
+        type: integer
+      Timedate:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"index;type:timestamptz"
+      Unit:
+        type: string
+      Usage:
+        type: number
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+        format: double
+        default: 0.0

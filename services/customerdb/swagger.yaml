@@ -1,0 +1,1537 @@
+---
+swagger: "2.0"
+host: "localhost:8000"
+basePath: "/api/v1.0"
+info:
+  description: An API which supports creation, deletion, listing etc of customers and products
+  version: "1.0.0"
+  title: Customer Database Management API
+  contact:
+    email: diego@cyclops-labs.io
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: statusManagement
+    description: Actions relating to the reporting of the state of the service
+  - name: triggerManagement
+    description: Actions relating to the periodics actions to be triggered in the system
+  - name: resellerManagement
+    description: Actions relating to the management of Resellers
+  - name: customerManagement
+    description: Actions relating to the management of Customers
+  - name: productManagement
+    description: Actions relating to the management of Products
+
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: X-API-KEY
+  APIKeyParam:
+    type: apiKey
+    in: query
+    name: api_key
+  Keycloak:
+    type: oauth2
+    flow:  accessCode
+    authorizationUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/auth'
+    tokenUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/token'
+    scopes:
+      admin: Admin scope
+      user: User scope
+
+schemes:
+  - http
+  - https
+
+security:
+  - Keycloak: [user,admin]
+  - APIKeyHeader: []
+  - APIKeyParam: []
+
+paths:
+  /status:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: showStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+  /status/{id}:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          enum:
+          - kafka-receiver
+          - kafka-sender
+          - status
+          - trigger
+          - customer
+          - product
+          - reseller
+          required: true
+          description: Id of the product to be retrieved
+  /trigger/sample:
+    get:
+      tags:
+        - triggerManagement
+      produces:
+        - application/json
+      summary: Sample task trigger
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: execSample
+      responses:
+        '200':
+          description: Sample task executed successfully
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /customer:
+    get:
+      tags:
+        - customerManagement
+      produces:
+        - application/json
+      summary: List all the customers in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: listCustomers
+      responses:
+        '200':
+          description: List of customers in the system returned
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Customer"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    post:
+      tags:
+        - customerManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Insert a new customer in the system.
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: addCustomer
+      responses:
+        '201':
+          description: New customer was added successfully
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '202':
+          description: The new customer was added but there might have been some fails when adding part of the data
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '400':
+          description: Invalid input, object invalid
+        '409':
+          description: The given item already exists
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: customer
+          in: body
+          description: Customer to be added
+          required: true
+          schema:
+            $ref: "#/definitions/Customer"
+  /customer/{id}:
+    get:
+      tags:
+        - customerManagement
+      produces:
+        - application/json
+      summary: Return the information about the customer with the given id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getCustomer
+      responses:
+        '200':
+          description: Customer with the id given in the system returned
+          schema:
+            $ref: "#/definitions/Customer"
+        '404':
+          description: The customer with the given id wasn't found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the customer to be retrieved
+    put:
+      tags:
+        - customerManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Updates the information of the customer with the given id
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: updateCustomer
+      responses:
+        '200':
+          description: Customer with the given id was updated
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '202':
+          description: The customer was updated but there might have been some fails when adding part of the data
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '404':
+          description: The customer with the given id wasn't found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the customer to be updated
+        - name: customer
+          in: body
+          description: Customer to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/Customer"
+
+  /product:
+    get:
+      tags:
+        - productManagement
+      produces:
+        - application/json
+      summary: List all the products in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: listProducts
+      responses:
+        '200':
+          description: List of products in the system returned
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Product"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    post:
+      tags:
+        - productManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Insert a new product in the system.
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: addProduct
+      responses:
+        '201':
+          description: New product was added successfully
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '400':
+          description: Invalid input, object invalid
+        '409':
+          description: The given item already exists
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: product
+          in: body
+          description: Product to be added
+          required: true
+          schema:
+            $ref: "#/definitions/Product"
+  /product/{id}:
+    get:
+      tags:
+        - productManagement
+      produces:
+        - application/json
+      summary: Return the information about the product with the given id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getProduct
+      responses:
+        '200':
+          description: Product with the id given in the system returned
+          schema:
+            $ref: "#/definitions/Product"
+        '404':
+          description: The product with the given id wasn't found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the product to be retrieved
+    put:
+      tags:
+        - productManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Updates the information of the product with the given id
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: updateProduct
+      responses:
+        '200':
+          description: Product with the given id was updated
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '404':
+          description: The product with the given id wasn't found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the product to be updated
+        - name: product
+          in: body
+          description: Product to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/Product"
+
+  /reseller:
+    get:
+      tags:
+        - resellerManagement
+      produces:
+        - application/json
+      summary: List all the resellers in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: listResellers
+      responses:
+        '200':
+          description: List of resellers in the system returned
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Reseller"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    post:
+      tags:
+        - resellerManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Insert a new reseller in the system.
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: addReseller
+      responses:
+        '201':
+          description: New reseller was added successfully
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '202':
+          description: The new reseller was added but there might have been some fails when adding part of the data
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '400':
+          description: Invalid input, object invalid
+        '409':
+          description: The given item already exists
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: reseller
+          in: body
+          description: Reseller to be added
+          required: true
+          schema:
+            $ref: "#/definitions/Reseller"
+  /reseller/{id}:
+    get:
+      tags:
+        - resellerManagement
+      produces:
+        - application/json
+      summary: Return the information about the reseller with the given id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getReseller
+      responses:
+        '200':
+          description: Reseller with the id given in the system returned
+          schema:
+            $ref: "#/definitions/Reseller"
+        '404':
+          description: The reseller with the given id wasn't found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the reseller to be retrieved
+    put:
+      tags:
+        - resellerManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Updates the information of the reseller with the given id
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: updateReseller
+      responses:
+        '200':
+          description: Reseller with the given id was updated
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '202':
+          description: The reseller was updated but there might have been some fails when adding part of the data
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '404':
+          description: The reseller with the given id wasn't found
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the reseller to be updated
+        - name: reseller
+          in: body
+          description: Reseller to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/Reseller"
+
+definitions:
+  ErrorResponse:
+    type: object
+    required:
+      - errorString
+    properties:
+      errorString:
+        type: string
+  ItemCreatedResponse:
+    properties:
+      Message:
+        type: string
+      ApiLink:
+        type: string
+  Status:
+    type: object
+    required:
+      - SystemState
+    properties:
+      AverageResponseTime:
+        type: number
+        format: double
+      DBState:
+        type: string
+      LastRequest:
+        type: string
+      RequestsBoT:
+        type: integer
+      RequestsLastHour:
+        type: integer
+      RequestsToday:
+        type: integer
+      SystemState:
+        type: string
+
+  Customer:
+    type: object
+    properties:
+      AbacusCode:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      Address:
+        type: string
+      ApiLink:
+        type: string
+        x-go-custom-tag: gorm:"-"
+      Billable:
+        type: boolean
+        x-go-custom-tag: gorm:"default:true"
+        default: true
+      BillContact:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      BillCurrency:
+        type: string
+        x-go-custom-tag: gorm:"default:CHF"
+        description: ISO-4217 currency code
+        default: CHF
+        enum:
+        - AED
+        - AFN
+        - ALL
+        - AMD
+        - ANG
+        - AOA
+        - ARS
+        - AUD
+        - AWG
+        - AZN
+        - BAM
+        - BBD
+        - BDT
+        - BGN
+        - BHD
+        - BIF
+        - BMD
+        - BND
+        - BOB
+        - BOV
+        - BRL
+        - BSD
+        - BTN
+        - BWP
+        - BYN
+        - BZD
+        - CAD
+        - CDF
+        - CHE
+        - CHF
+        - CHW
+        - CLF
+        - CLP
+        - CNY
+        - COP
+        - COU
+        - CRC
+        - CUC
+        - CUP
+        - CVE
+        - CZK
+        - DJF
+        - DKK
+        - DOP
+        - DZD
+        - EGP
+        - ERN
+        - ETB
+        - EUR
+        - FJD
+        - FKP
+        - GBP
+        - GEL
+        - GHS
+        - GIP
+        - GMD
+        - GNF
+        - GTQ
+        - GYD
+        - HKD
+        - HNL
+        - HRK
+        - HTG
+        - HUF
+        - IDR
+        - ILS
+        - INR
+        - IQD
+        - IRR
+        - ISK
+        - JMD
+        - JOD
+        - JPY
+        - KES
+        - KGS
+        - KHR
+        - KMF
+        - KPW
+        - KRW
+        - KWD
+        - KYD
+        - KZT
+        - LAK
+        - LBP
+        - LKR
+        - LRD
+        - LSL
+        - LYD
+        - MAD
+        - MDL
+        - MGA
+        - MKD
+        - MMK
+        - MNT
+        - MOP
+        - MRU
+        - MUR
+        - MVR
+        - MWK
+        - MXN
+        - MXV
+        - MYR
+        - MZN
+        - NAD
+        - NGN
+        - NIO
+        - NOK
+        - NPR
+        - NZD
+        - OMR
+        - PAB
+        - PEN
+        - PGK
+        - PHP
+        - PKR
+        - PLN
+        - PYG
+        - QAR
+        - RON
+        - RSD
+        - RUB
+        - RWF
+        - SAR
+        - SBD
+        - SCR
+        - SDG
+        - SEK
+        - SGD
+        - SHP
+        - SLL
+        - SOS
+        - SRD
+        - SSP
+        - STN
+        - SVC
+        - SYP
+        - SZL
+        - THB
+        - TJS
+        - TMT
+        - TND
+        - TOP
+        - TRY
+        - TTD
+        - TWD
+        - TZS
+        - UAH
+        - UGX
+        - USD
+        - USN
+        - UYI
+        - UYU
+        - UYW
+        - UZS
+        - VES
+        - VND
+        - VUV
+        - WST
+        - XAF
+        - XAG
+        - XAU
+        - XBA
+        - XBB
+        - XBC
+        - XBD
+        - XCD
+        - XDR
+        - XOF
+        - XPD
+        - XPF
+        - XPT
+        - XSU
+        - XTS
+        - XUA
+        - XXX
+        - YER
+        - ZAR
+        - ZMW
+        - ZWL
+      BillingCode:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      BillPeriod:
+        type: string
+        x-go-custom-tag: gorm:"default:monthly"
+        default: monthly
+        enum:
+        - daily
+        - weekly
+        - bi-weekly
+        - monthly
+        - bi-monthly
+        - quarterly
+        - semi-annually
+        - annually
+      CancelDate:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2100-12-31"
+        format: date
+      ContractEnd:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2030-12-31"
+        format: date
+      ContractStart:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2019-01-01"
+        format: date
+      CustomerId:
+        type: string
+        x-go-custom-tag: gorm:"primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      DeletedAt:
+        type: string
+        x-go-custom-tag: gorm:"type:timestamptz"
+        x-nullable: true
+        format: datetime
+      Discount:
+        type: number
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+        format: double
+        default: 0.0
+      EmailBcc:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+        format: email
+      EmailCc:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+        format: email
+      EmailTo:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+        format: email
+      InvoiceMode:
+        type: string
+        x-go-custom-tag: gorm:"default:email"
+        default: email
+        enum:
+        - email
+        - post
+      IsActive:
+        type: boolean
+        x-go-custom-tag: gorm:"default:true"
+        default: true
+      Language:
+        type: string
+        x-go-custom-tag: gorm:"default:DE"
+        description: ISO-369-1 alpha-2 language codes
+        default: DE
+        enum:
+        - AA
+        - AB
+        - AE
+        - AF
+        - AK
+        - AM
+        - AN
+        - AR
+        - AS
+        - AV
+        - AY
+        - AZ
+        - BA
+        - BE
+        - BG
+        - BH
+        - BI
+        - BM
+        - BN
+        - BO
+        - BR
+        - BS
+        - CA
+        - CE
+        - CH
+        - CO
+        - CR
+        - CS
+        - CU
+        - CV
+        - CY
+        - DA
+        - DE
+        - DV
+        - DZ
+        - EE
+        - EL
+        - EN
+        - EO
+        - ES
+        - ET
+        - EU
+        - FA
+        - FF
+        - FI
+        - FJ
+        - FO
+        - FR
+        - FY
+        - GA
+        - GD
+        - GL
+        - GN
+        - GU
+        - GV
+        - HA
+        - HE
+        - HI
+        - HO
+        - HR
+        - HT
+        - HU
+        - HY
+        - HZ
+        - IA
+        - ID
+        - IE
+        - IG
+        - II
+        - IK
+        - IO
+        - IS
+        - IT
+        - IU
+        - JA
+        - JV
+        - KA
+        - KG
+        - KI
+        - KJ
+        - KK
+        - KL
+        - KM
+        - KN
+        - KO
+        - KR
+        - KS
+        - KU
+        - KV
+        - KW
+        - KY
+        - LA
+        - LB
+        - LG
+        - LI
+        - LN
+        - LO
+        - LT
+        - LU
+        - LV
+        - MG
+        - MH
+        - MI
+        - MK
+        - ML
+        - MN
+        - MR
+        - MS
+        - MT
+        - MY
+        - NA
+        - NB
+        - ND
+        - NE
+        - NG
+        - NL
+        - NN
+        - "NO"
+        - NR
+        - NV
+        - NY
+        - OC
+        - OJ
+        - OM
+        - OR
+        - OS
+        - PA
+        - PI
+        - PL
+        - PS
+        - PT
+        - QU
+        - RM
+        - RN
+        - RO
+        - RU
+        - RW
+        - SA
+        - SC
+        - SD
+        - SE
+        - SG
+        - SI
+        - SK
+        - SL
+        - SM
+        - SN
+        - SO
+        - SQ
+        - SR
+        - SS
+        - ST
+        - SU
+        - SV
+        - SW
+        - TA
+        - TE
+        - TG
+        - TH
+        - TI
+        - TK
+        - TL
+        - TN
+        - TO
+        - TR
+        - TS
+        - TT
+        - TW
+        - TY
+        - UG
+        - UK
+        - UR
+        - UZ
+        - VE
+        - VI
+        - VO
+        - WA
+        - WO
+        - XH
+        - YI
+        - YO
+        - ZA
+        - ZH
+        - ZU
+      Name:
+        type: string
+      ParentCustomerId:
+        type: string
+      PlanId:
+        type: string
+        x-go-custom-tag: gorm:"default:'DEFAULT'"
+      Products:
+        type: array
+        x-go-custom-tag: gorm:"-"
+        items:
+          $ref: "#/definitions/Product"
+      ResellerId:
+        type: string
+
+  Product:
+    type: object
+    properties:
+      ApiLink:
+        type: string
+        x-go-custom-tag: gorm:"-"
+      CancelDate:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2100-12-31"
+        format: date
+        default: 2100-12-31
+      CustomerId:
+        type: string
+      DeletedAt:
+        type: string
+        x-go-custom-tag: gorm:"type:timestamptz"
+        x-nullable: true
+        format: datetime
+      Discount:
+        type: number
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+        format: double
+        default: 0.0
+      Name:
+        type: string
+      PlanId:
+        type: string
+        x-go-custom-tag: gorm:"default:'DEFAULT'"
+      ProductId:
+        type: string
+        x-go-custom-tag: gorm:"primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
+      Type:
+        type: string
+
+  Reseller:
+    type: object
+    properties:
+      AbacusCode:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      Address:
+        type: string
+      ApiLink:
+        type: string
+        x-go-custom-tag: gorm:"-"
+      Billable:
+        type: boolean
+        x-go-custom-tag: gorm:"default:true"
+        default: true
+      BillContact:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      BillCurrency:
+        type: string
+        x-go-custom-tag: gorm:"default:CHF"
+        description: ISO-4217 currency code
+        default: CHF
+        enum:
+        - AED
+        - AFN
+        - ALL
+        - AMD
+        - ANG
+        - AOA
+        - ARS
+        - AUD
+        - AWG
+        - AZN
+        - BAM
+        - BBD
+        - BDT
+        - BGN
+        - BHD
+        - BIF
+        - BMD
+        - BND
+        - BOB
+        - BOV
+        - BRL
+        - BSD
+        - BTN
+        - BWP
+        - BYN
+        - BZD
+        - CAD
+        - CDF
+        - CHE
+        - CHF
+        - CHW
+        - CLF
+        - CLP
+        - CNY
+        - COP
+        - COU
+        - CRC
+        - CUC
+        - CUP
+        - CVE
+        - CZK
+        - DJF
+        - DKK
+        - DOP
+        - DZD
+        - EGP
+        - ERN
+        - ETB
+        - EUR
+        - FJD
+        - FKP
+        - GBP
+        - GEL
+        - GHS
+        - GIP
+        - GMD
+        - GNF
+        - GTQ
+        - GYD
+        - HKD
+        - HNL
+        - HRK
+        - HTG
+        - HUF
+        - IDR
+        - ILS
+        - INR
+        - IQD
+        - IRR
+        - ISK
+        - JMD
+        - JOD
+        - JPY
+        - KES
+        - KGS
+        - KHR
+        - KMF
+        - KPW
+        - KRW
+        - KWD
+        - KYD
+        - KZT
+        - LAK
+        - LBP
+        - LKR
+        - LRD
+        - LSL
+        - LYD
+        - MAD
+        - MDL
+        - MGA
+        - MKD
+        - MMK
+        - MNT
+        - MOP
+        - MRU
+        - MUR
+        - MVR
+        - MWK
+        - MXN
+        - MXV
+        - MYR
+        - MZN
+        - NAD
+        - NGN
+        - NIO
+        - NOK
+        - NPR
+        - NZD
+        - OMR
+        - PAB
+        - PEN
+        - PGK
+        - PHP
+        - PKR
+        - PLN
+        - PYG
+        - QAR
+        - RON
+        - RSD
+        - RUB
+        - RWF
+        - SAR
+        - SBD
+        - SCR
+        - SDG
+        - SEK
+        - SGD
+        - SHP
+        - SLL
+        - SOS
+        - SRD
+        - SSP
+        - STN
+        - SVC
+        - SYP
+        - SZL
+        - THB
+        - TJS
+        - TMT
+        - TND
+        - TOP
+        - TRY
+        - TTD
+        - TWD
+        - TZS
+        - UAH
+        - UGX
+        - USD
+        - USN
+        - UYI
+        - UYU
+        - UYW
+        - UZS
+        - VES
+        - VND
+        - VUV
+        - WST
+        - XAF
+        - XAG
+        - XAU
+        - XBA
+        - XBB
+        - XBC
+        - XBD
+        - XCD
+        - XDR
+        - XOF
+        - XPD
+        - XPF
+        - XPT
+        - XSU
+        - XTS
+        - XUA
+        - XXX
+        - YER
+        - ZAR
+        - ZMW
+        - ZWL
+      BillingCode:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      BillPeriod:
+        type: string
+        x-go-custom-tag: gorm:"default:monthly"
+        default: monthly
+        enum:
+        - daily
+        - weekly
+        - bi-weekly
+        - monthly
+        - bi-monthly
+        - quarterly
+        - semi-annually
+        - annually
+      CancelDate:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2100-12-31"
+        format: date
+      ContractEnd:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2030-12-31"
+        format: date
+      ContractStart:
+        type: string
+        x-go-custom-tag: gorm:"type:date;default:2019-01-01"
+        format: date
+      Customers:
+        type: array
+        x-go-custom-tag: gorm:"-"
+        items:
+          $ref: "#/definitions/Customer"
+      DeletedAt:
+        type: string
+        x-go-custom-tag: gorm:"type:timestamptz"
+        x-nullable: true
+        format: datetime
+      EmailBcc:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+        format: email
+      EmailCc:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+        format: email
+      EmailTo:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+        format: email
+      Discount:
+        type: number
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+        format: double
+        default: 0.0
+      InvoiceMode:
+        type: string
+        x-go-custom-tag: gorm:"default:email"
+        default: email
+        enum:
+        - email
+        - post
+      IsActive:
+        type: boolean
+        x-go-custom-tag: gorm:"default:true"
+        default: true
+      Language:
+        type: string
+        x-go-custom-tag: gorm:"default:DE"
+        description: ISO-369-1 alpha-2 language codes
+        default: DE
+        enum:
+        - AA
+        - AB
+        - AE
+        - AF
+        - AK
+        - AM
+        - AN
+        - AR
+        - AS
+        - AV
+        - AY
+        - AZ
+        - BA
+        - BE
+        - BG
+        - BH
+        - BI
+        - BM
+        - BN
+        - BO
+        - BR
+        - BS
+        - CA
+        - CE
+        - CH
+        - CO
+        - CR
+        - CS
+        - CU
+        - CV
+        - CY
+        - DA
+        - DE
+        - DV
+        - DZ
+        - EE
+        - EL
+        - EN
+        - EO
+        - ES
+        - ET
+        - EU
+        - FA
+        - FF
+        - FI
+        - FJ
+        - FO
+        - FR
+        - FY
+        - GA
+        - GD
+        - GL
+        - GN
+        - GU
+        - GV
+        - HA
+        - HE
+        - HI
+        - HO
+        - HR
+        - HT
+        - HU
+        - HY
+        - HZ
+        - IA
+        - ID
+        - IE
+        - IG
+        - II
+        - IK
+        - IO
+        - IS
+        - IT
+        - IU
+        - JA
+        - JV
+        - KA
+        - KG
+        - KI
+        - KJ
+        - KK
+        - KL
+        - KM
+        - KN
+        - KO
+        - KR
+        - KS
+        - KU
+        - KV
+        - KW
+        - KY
+        - LA
+        - LB
+        - LG
+        - LI
+        - LN
+        - LO
+        - LT
+        - LU
+        - LV
+        - MG
+        - MH
+        - MI
+        - MK
+        - ML
+        - MN
+        - MR
+        - MS
+        - MT
+        - MY
+        - NA
+        - NB
+        - ND
+        - NE
+        - NG
+        - NL
+        - NN
+        - "NO"
+        - NR
+        - NV
+        - NY
+        - OC
+        - OJ
+        - OM
+        - OR
+        - OS
+        - PA
+        - PI
+        - PL
+        - PS
+        - PT
+        - QU
+        - RM
+        - RN
+        - RO
+        - RU
+        - RW
+        - SA
+        - SC
+        - SD
+        - SE
+        - SG
+        - SI
+        - SK
+        - SL
+        - SM
+        - SN
+        - SO
+        - SQ
+        - SR
+        - SS
+        - ST
+        - SU
+        - SV
+        - SW
+        - TA
+        - TE
+        - TG
+        - TH
+        - TI
+        - TK
+        - TL
+        - TN
+        - TO
+        - TR
+        - TS
+        - TT
+        - TW
+        - TY
+        - UG
+        - UK
+        - UR
+        - UZ
+        - VE
+        - VI
+        - VO
+        - WA
+        - WO
+        - XH
+        - YI
+        - YO
+        - ZA
+        - ZH
+        - ZU
+      Name:
+        type: string
+      ParentResellerId:
+        type: string
+        x-go-custom-tag: gorm:"default:''"
+      PlanId:
+        type: string
+        x-go-custom-tag: gorm:"default:'DEFAULT'"
+      ResellerId:
+        type: string
+        x-go-custom-tag: gorm:"primary_key;unique;default:md5(random()::text || clock_timestamp()::text)::uuid"
