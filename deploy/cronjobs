@@ -1,0 +1,4 @@
+0 3 * * * /usr/bin/curl -H "X-API-Key: 1234567890abcdefghi" -H "Content-Type: application/json" "http://localhost:8700/api/v1.0/trigger/compact"
+0 11 * * * /usr/bin/curl -H "X-API-Key: 1234567890abcdefghi" -H "Content-Type: application/json" "http://localhost:8700/api/v1.0/trigger/compact"
+0 19 * * * /usr/bin/curl -H "X-API-Key: 1234567890abcdefghi" -H "Content-Type: application/json" "http://localhost:8700/api/v1.0/trigger/compact"
+0 7 * * * /usr/bin/curl -H "X-API-Key: 1234567890abcdefghi" -H "Content-Type: application/json" "http://localhost:8200/api/v1.0/trigger/transform"

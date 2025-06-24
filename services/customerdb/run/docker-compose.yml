@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+
+  db:
+    image: postgres:latest
+    networks:
+      - servicenet
+    environment:
+      POSTGRES_PASSWORD: pass1234
+      POSTGRES_DB: cyclops
+      POSTGRES_USER: cyclops
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/var/lib/postgresql
+      # This needs explicit mapping due to https://github.com/docker-library/postgres/blob/4e48e3228a30763913ece952c611e5e9b95c8759/Dockerfile.template#L52
+      - postgresql_data:/var/lib/postgresql/data
+
+
+  service:
+    image: tft/customerdb:latest
+    restart: always
+    environment:
+      WAIT_HOSTS: db:5432
+    networks:
+      - servicenet
+    depends_on:
+      - "db"
+    ports:
+      - 8000:8000
+    volumes:
+      - ${PWD}/config.toml:/config.toml
+      - ${PWD}/cert.crt:/cert.crt
+      - ${PWD}/key.key:/key.key
+
+networks:
+  servicenet:
+    driver: bridge
+
+volumes:
+  postgresql:
+  postgresql_data:

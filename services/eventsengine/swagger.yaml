@@ -1,0 +1,527 @@
+---
+swagger: "2.0"
+host: "localhost:8000"
+basePath: "/api/v1.0"
+info:
+  description: An API which supports creation, deletion, listing etc of Event Engine
+  version: "1.0.0"
+  title: Event Engine Management API
+  contact:
+    email: diego@cyclops-labs.io
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: statusManagement
+    description: Actions relating to the reporting of the state of the service
+  - name: triggerManagement
+    description: Actions relating to the periodics actions to be triggered in the system
+  - name: eventManagement
+    description: Actions relating to the adquisition of events in the system
+  - name: usageManagement
+    description: Actions relating to the reporting of the usages in the system
+
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: X-API-KEY
+  APIKeyParam:
+    type: apiKey
+    in: query
+    name: api_key
+  Keycloak:
+    type: oauth2
+    flow:  accessCode
+    authorizationUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/auth'
+    tokenUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/token'
+    scopes:
+      admin: Admin scope
+      user: User scope
+
+schemes:
+  - http
+  - https
+
+security:
+  - Keycloak: [user,admin]
+  - APIKeyHeader: []
+  - APIKeyParam: []
+
+paths:
+  /status:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: showStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+              $ref: "#/definitions/Status"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /status/{id}:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+              $ref: "#/definitions/Status"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          enum:
+          - status
+          - kafka-receiver
+          - kafka-sender
+          - trigger
+          - usage
+          - event
+          required: true
+          description: Id of the endpoint to be checked
+  /trigger/sample:
+    get:
+      tags:
+        - triggerManagement
+      produces:
+        - application/json
+      summary: Sample task trigger
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: execSample
+      responses:
+        '200':
+          description: Sample task executed successfully
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /event:
+    post:
+      tags:
+        - eventManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Takes into the system the provided event
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: addEvent
+      responses:
+        '201':
+          description: Item added successfully
+          schema:
+            $ref: "#/definitions/ItemCreatedResponse"
+        '400':
+          description: Invalid input, object invalid
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: event
+          in: body
+          description: Event to be added to the system
+          required: true
+          schema:
+            $ref: "#/definitions/Event"
+  /event/history/{account}:
+    get:
+      tags:
+        - eventManagement
+      produces:
+        - application/json
+      summary: Provides the events for the id provided
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getHistory
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Event"
+        '404':
+          description: Item not found in the system
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: account
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: from
+          in: query
+          description: Datetime from which to get the usage report
+          type: integer
+        - name: to
+          in: query
+          description: Datetime until which to get the usage report
+          type: integer
+        - name: resource
+          in: query
+          description: Resource type to filter the usage
+          type: string
+        - name: region
+          in: query
+          description: Resource region to filter the usage
+          type: string
+  /event/status:
+    get:
+      tags:
+        - eventManagement
+      produces:
+        - application/json
+      summary: Provides the list of states in not terminated state
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: listStates
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/MinimalState"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: resource
+          in: query
+          description: Resource type to filter the usage
+          type: string
+        - name: region
+          in: query
+          description: Resource region to filter the usage
+          type: string
+  /event/status/{account}:
+    get:
+      tags:
+        - eventManagement
+      produces:
+        - application/json
+      summary: Provides the events for the id provided
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getState
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/State"
+        '404':
+          description: Item not found in the system
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: account
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+
+  /usage:
+    get:
+      tags:
+        - usageManagement
+      produces:
+        - application/json
+      summary: Generates an aggregated response by account of the usage recorded in the system during the time-window specified
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getSystemUsage
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Usage"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: from
+          in: query
+          description: Datetime from which to get the usage report
+          type: integer
+        - name: to
+          in: query
+          description: Datetime until which to get the usage report
+          type: integer
+        - name: resource
+          in: query
+          description: Resource type to filter the usage
+          type: string
+        - name: region
+          in: query
+          description: Resource region to filter the usage
+          type: string
+  /usage/{id}:
+    get:
+      tags:
+        - usageManagement
+      produces:
+        - application/json
+      summary: Generates an aggregated response of the usage recorded in the system during the time-window specified for the selected account
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getUsage
+      responses:
+        '200':
+          description: Description of a successfully operation
+          schema:
+            $ref: "#/definitions/Usage"
+        '404':
+          description: Item not found in the system
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          description: Id of the account to be checked
+          required: true
+          type: string
+        - name: from
+          in: query
+          description: Datetime from which to get the usage report
+          type: integer
+        - name: to
+          in: query
+          description: Datetime until which to get the usage report
+          type: integer
+        - name: resource
+          in: query
+          description: Resource type to filter the usage
+          type: string
+        - name: region
+          in: query
+          description: Resource region to filter the usage
+          type: string
+
+definitions:
+  ErrorResponse:
+    type: object
+    required:
+      - errorString
+    properties:
+      errorString:
+        type: string
+  ItemCreatedResponse:
+    properties:
+      ApiLink:
+        type: string
+      Message:
+        type: string
+  Metadata:
+    type: object
+    x-go-type:
+      import:
+        package: "gitlab.com/cyclops-utilities/datamodels"
+      type: JSONdb
+  Status:
+    type: object
+    required:
+      - SystemState
+    properties:
+      AverageResponseTime:
+        type: number
+        format: double
+      DBState:
+        type: string
+      LastRequest:
+        type: string
+      RequestsBoT:
+        type: integer
+      RequestsLastHour:
+        type: integer
+      RequestsToday:
+        type: integer
+      SystemState:
+        type: string
+
+  Event:
+    type: object
+    required:
+      - EventTime
+      - LastEvent
+    properties:
+      Account:
+        type: string
+        x-go-custom-tag: gorm:"index"
+      EventTime:
+        type: integer
+      ID:
+        type: integer
+        x-go-custom-tag: gorm:"primary_key;auto_increment"
+      LastEvent:
+        type: string
+        enum:
+        - active
+        - error
+        - inactive
+        - terminated
+        - suspended
+      MetaData:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+      Region:
+        type: string
+      ResourceId:
+        type: string
+      ResourceName:
+        type: string
+      ResourceType:
+        type: string
+      TimeFrom:
+        type: integer
+        x-go-custom-tag: gorm:"index"
+      TimeTo:
+        type: integer
+        x-go-custom-tag: gorm:"index"
+
+  State:
+    type: object
+    required:
+      - EventTime
+      - LastEvent
+    properties:
+      Account:
+        type: string
+        x-go-custom-tag: gorm:"index"
+      EventTime:
+        type: integer
+      ID:
+        type: integer
+        x-go-custom-tag: gorm:"primary_key;auto_increment"
+      LastEvent:
+        type: string
+        enum:
+        - active
+        - error
+        - inactive
+        - terminated
+        - suspended
+      MetaData:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+      Region:
+        type: string
+      ResourceId:
+        type: string
+      ResourceName:
+        type: string
+      ResourceType:
+        type: string
+      TimeFrom:
+        type: integer
+        x-go-custom-tag: gorm:"index"
+      TimeTo:
+        type: integer
+        x-go-custom-tag: gorm:"index"
+
+  MinimalState:
+    type: object
+    properties:
+      Account:
+        type: string
+      MetaData:
+        x-go-custom-tag: gorm:"type:jsonb"
+        $ref: '#/definitions/Metadata'
+      ResourceId:
+        type: string
+      ResourceName:
+        type: string
+
+  Usage:
+    type: object
+    properties:
+      AccountId:
+        type: string
+      TimeFrom:
+        type: integer
+      TimeTo:
+        type: integer
+      Usage:
+        type: array
+        items:
+          $ref: '#/definitions/Use'
+
+  Use:
+    type: object
+    properties:
+      MetaData:
+        $ref: '#/definitions/Metadata'
+      Region:
+        type: string
+      ResourceId:
+        type: string
+      ResourceName:
+        type: string
+      ResourceType:
+        type: string
+      Unit:
+        type: string
+      UsageBreakup:
+        $ref: '#/definitions/Metadata'

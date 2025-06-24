@@ -1,0 +1,642 @@
+---
+swagger: "2.0"
+host: "localhost:8000"
+basePath: "/api/v1.0"
+info:
+  description: An API which supports creation, deletion, listing etc of Credit Manager
+  version: "1.0.0"
+  title: Credit Manager Management API
+  contact:
+    email: diego@cyclops-labs.io
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+
+tags:
+  - name: statusManagement
+    description: Actions relating to the reporting of the state of the service
+  - name: triggerManagement
+    description: Actions relating to the periodics actions to be triggered in the system
+  - name: creditManagement
+    description: Actions relating to the control of the credits per account
+  - name: accountManagement
+    description: Actions relating to the account management in the service
+
+securityDefinitions:
+  APIKeyHeader:
+    type: apiKey
+    in: header
+    name: X-API-KEY
+  APIKeyParam:
+    type: apiKey
+    in: query
+    name: api_key
+  Keycloak:
+    type: oauth2
+    flow:  accessCode
+    authorizationUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/auth'
+    tokenUrl: 'http://localhost:8080/auth/realms/Dev/protocol/openid-connect/token'
+    scopes:
+      admin: Admin scope
+      user: User scope
+
+schemes:
+  - http
+  - https
+
+security:
+  - Keycloak: [user,admin]
+  - APIKeyHeader: []
+  - APIKeyParam: []
+
+paths:
+  /status:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: showStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+  /status/{id}:
+    get:
+      tags:
+        - statusManagement
+      produces:
+        - application/json
+      summary: Basic status of the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status information of the system
+          schema:
+            $ref: "#/definitions/Status"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          enum:
+          - kafka-receiver
+          - kafka-sender
+          - status
+          - trigger
+          - account
+          - credit
+          required: true
+          description: Id of the endpoint to be checked
+  /trigger/sample:
+    get:
+      tags:
+        - triggerManagement
+      produces:
+        - application/json
+      summary: Sample task trigger
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: execSample
+      responses:
+        '200':
+          description: Sample task executed successfully
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /account/create/{id}:
+    get:
+      tags:
+        - accountManagement
+      produces:
+        - application/json
+      summary: Creates a new account in the system
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: createAccount
+      responses:
+        '201':
+          description: Account created, provided information of the new item created
+          schema:
+            $ref: "#/definitions/AccountStatus"
+        '409':
+          description: The account with the id provided already exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be created
+
+  /account/disable/{id}:
+    post:
+      tags:
+        - accountManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Disables the account with the id provided in the system
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: disableAccount
+      responses:
+        '200':
+          description: Status information of the account with provided id in the system after the operation succeded
+          schema:
+            $ref: "#/definitions/AccountStatus"
+        '404':
+          description: The account with the id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be disabled
+
+  /account/enable/{id}:
+    post:
+      tags:
+        - accountManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Enables the account with the id provided in the system
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: enableAccount
+      responses:
+        '200':
+          description: Status information of the account with provided id in the system after the operation succeded
+          schema:
+            $ref: "#/definitions/AccountStatus"
+        '404':
+          description: The account with the id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be enabled
+
+  /account/list:
+    get:
+      tags:
+        - accountManagement
+      produces:
+        - application/json
+      summary: List of the accounts in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: listAccounts
+      responses:
+        '200':
+          description: List of accounts in the system
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/AccountStatus"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /account/status/{id}:
+    get:
+      tags:
+        - accountManagement
+      produces:
+        - application/json
+      summary: Basic status of the account with the id provided in the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getAccountStatus
+      responses:
+        '200':
+          description: Status information of the account with provided id in the system
+          schema:
+            $ref: "#/definitions/AccountStatus"
+        '404':
+          description: The account with the id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be checked
+
+  /account/available/{id}:
+    get:
+      tags:
+        - creditManagement
+      produces:
+        - application/json
+      summary: Credit status of the account with the provided id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getCredit
+      responses:
+        '200':
+          description: Credit status of the account with the provided id
+          schema:
+            $ref: "#/definitions/CreditStatus"
+        '404':
+          description: The account with the provided id doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be checked
+
+  /{medium}/available/decrease/{id}:
+    post:
+      tags:
+        - creditManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Insert a new reseller in the system.
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: decreaseCredit
+      responses:
+        '200':
+          description: Credit status of the account with the provided id
+          schema:
+            $ref: "#/definitions/CreditStatus"
+        '404':
+          description: The account with the id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be checked
+        - name: amount
+          in: query
+          description: Amount to be decreased
+          required: true
+          type: number
+          format: double
+        - name: medium
+          in: path
+          description: Medium (cash/credit) to be used in the accounting
+          required: true
+          type: string
+          enum:
+          - credit
+          - cash
+
+  /{medium}/available/increase/{id}:
+    post:
+      tags:
+        - creditManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Insert a new reseller in the system.
+      security:
+        - Keycloak: [admin]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: increaseCredit
+      responses:
+        '200':
+          description: Credit status of the account with the provided id
+          schema:
+            $ref: "#/definitions/CreditStatus"
+        '404':
+          description: The account with the id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be checked
+        - name: amount
+          in: query
+          description: Amount to be inccreased
+          required: true
+          type: number
+          format: double
+        - name: medium
+          in: path
+          description: Medium (cash/credit) to be used in the accounting
+          required: true
+          type: string
+          enum:
+          - credit
+          - cash
+
+  /{medium}/consume/{id}:
+    post:
+      tags:
+        - creditManagement
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Adds a consumption to the system
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: addConsumption
+      responses:
+        '200':
+          description: Credit status of the account with the provided id
+          schema:
+            $ref: "#/definitions/CreditStatus"
+        '404':
+          description: The account with the id provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to be checked
+        - name: amount
+          in: query
+          description: Amount to be decreased
+          required: true
+          type: number
+          format: double
+        - name: medium
+          in: path
+          description: Medium (cash/credit) to be used in the accounting
+          required: true
+          type: string
+          enum:
+          - credit
+          - cash
+
+  /history/{id}:
+    get:
+      tags:
+        - creditManagement
+      produces:
+        - application/json
+      summary: Credit history of the customer with id
+      security:
+        - Keycloak: [user]
+        - APIKeyHeader: []
+        - APIKeyParam: []
+      operationId: getHistory
+      responses:
+        '200':
+          description: Credit status history of the account with the provided id
+          schema:
+              $ref: "#/definitions/CreditHistory"
+        '404':
+          description: The endpoint provided doesn't exist
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        '500':
+          description: Something unexpected happend, error raised
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the account to get the history
+        - name: filterSystem
+          in: query
+          type: boolean
+          description: Boolean variable to control if the system consumptions have to be listed or not
+        - name: medium
+          in: query
+          description: Medium (cash/credit) to be used as filter
+          type: string
+          enum:
+          - credit
+          - cash
+
+definitions:
+  ErrorResponse:
+    type: object
+    required:
+      - errorString
+    properties:
+      errorString:
+        type: string
+  Status:
+    type: object
+    required:
+      - SystemState
+    properties:
+      AverageResponseTime:
+        type: number
+        format: double
+      DBState:
+        type: string
+      LastRequest:
+        type: string
+      RequestsBoT:
+        type: integer
+      RequestsLastHour:
+        type: integer
+      RequestsToday:
+        type: integer
+      SystemState:
+        type: string
+
+  AccountStatus:
+    type: object
+    required:
+      - Enabled
+    properties:
+      AccountID:
+        type: string
+        x-go-custom-tag: gorm:"primary_key"
+      CreatedAt:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"type:timestamptz"
+      Enabled:
+        type: boolean
+        x-go-custom-tag: gorm:"default:true"
+        default: true
+
+  CreditEvents:
+    type: object
+    properties:
+      AccountId:
+        type: string
+        x-go-custom-tag: gorm:"index"
+      AuthorizedBy:
+        type: string
+      Delta:
+        type: number
+        format: double
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+      EventType:
+        type: string
+        x-go-custom-tag: gorm:"index;default:Consumption"
+        default: Consumption
+        enum:
+        - AuthorizedIncrease
+        - AuthorizedDecrease
+        - Consumption
+        - AutomaticCreditExpiry
+        - Refund
+      ID:
+        type: integer
+        x-go-custom-tag: gorm:"primary_key"
+      Timestamp:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"type:timestamptz"
+      Medium:
+        type: string
+        x-go-custom-tag: gorm:"index;default:CREDIT"
+        default: CREDIT
+        enum:
+        - CREDIT
+        - CASH
+
+  CreditHistory:
+    type: object
+    properties:
+      AccountID:
+        type: string
+        x-go-custom-tag: gorm:"primary_key"
+      Events:
+        type: array
+        items:
+          $ref: '#/definitions/Event'
+
+  CreditStatus:
+    type: object
+    properties:
+      AccountID:
+        type: string
+        x-go-custom-tag: gorm:"primary_key"
+      AvailableCredit:
+        type: number
+        format: double
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+      AvailableCash:
+        type: number
+        format: double
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+      LastUpdate:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"type:timestamptz"
+
+  Event:
+    type: object
+    properties:
+      AuthorizedBy:
+        type: string
+      Delta:
+        type: number
+        format: double
+        x-go-custom-tag: gorm:"type:numeric(23,13);default:0.0"
+      EventType:
+        type: string
+        x-go-custom-tag: gorm:"index;default:Consumption"
+        default: Consumption
+        enum:
+        - AuthorizedIncrease
+        - AuthorizedDecrease
+        - Consumption
+        - AutomaticCreditExpiry
+        - Refund
+      Timestamp:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"type:timestamptz"
+      Medium:
+        type: string
+        x-go-custom-tag: gorm:"index;default:CREDIT"
+        default: CREDIT
+        enum:
+        - CREDIT
+        - CASH
+
