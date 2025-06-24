@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+
+  collectors:
+    environment:
+      WAIT_AFTER_HOSTS: 30
+    image: tft/objects:latest
+    networks:
+      - collectorsnet
+    restart: always
+    volumes:
+      - ${PWD}/config.toml:/config.toml
+
+networks:
+  collectorsnet:
+    driver: bridge

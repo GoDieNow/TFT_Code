@@ -1,0 +1,93 @@
+# Welcome to the configuration file for this
+#
+#  ██████╗██╗   ██╗ ██████╗██╗      ██████╗ ██████╗ ███████╗
+# ██╔════╝╚██╗ ██╔╝██╔════╝██║     ██╔═══██╗██╔══██╗██╔════╝
+# ██║      ╚████╔╝ ██║     ██║     ██║   ██║██████╔╝███████╗
+# ██║       ╚██╔╝  ██║     ██║     ██║   ██║██╔═══╝ ╚════██║
+# ╚██████╗   ██║   ╚██████╗███████╗╚██████╔╝██║     ███████║
+#  ╚═════╝   ╚═╝    ╚═════╝╚══════╝ ╚═════╝ ╚═╝     ╚══════╝
+#
+# ██╗      █████╗ ██████╗ ███████╗
+# ██║     ██╔══██╗██╔══██╗██╔════╝
+# ██║     ███████║██████╔╝███████╗
+# ██║     ██╔══██║██╔══██╗╚════██║
+# ███████╗██║  ██║██████╔╝███████║
+# ╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝
+#
+# collector!
+
+[APIKEY]
+Enabled	= true
+Key     = "X-API-KEY"
+Place   = "header"
+Token   = "1234567890abcdefghi"
+
+[EVENTS]
+Filters = [ "filter1", "filter2", "filter3" ]
+
+[GENERAL]
+LogFile				  = ""
+LogToConsole		  = true
+# loglevel values can be one of the following: TRACE, DEBUG, INFO, WARNING, ERROR
+LogLevel			  = "TRACE"
+ObjectsPeriodicity	  = 480
+Periodicity			  = 15
+PrometheusPeriodicity = 60
+
+[HEAPPE]
+Username                    = ""
+Password                    = ""
+GroupResourceUsageReportUri = ""
+AuthenticateUserPasswordUri = ""
+
+[KAFKA]
+Brokers       = [ "kafka:9092" ]
+# -1 for the most recent
+# -2 for the first in the partition
+# Anyother for a specific offset
+Offset        = "-1"
+Partition     = "0"
+SizeMax       = 10e6
+SizeMin       = 10e3
+TLSEnabled    = false
+TopicEEngine  = "Events"
+TopicUDR      = "UDR"
+
+[KEYCLOAK]
+ClientID     = "SERVICE"
+ClientSecret = "00000000-0000-0000-0000-00000000"
+Enabled      = true
+Host         = "0.0.0.0"
+Port         = 8080
+Realm        = "Development"
+RedirectURL  = ""
+UseHttp      = true
+
+[LIEUTENANT]
+Host  = "lieutenant:4010"
+Token = ""
+
+[OPENSTACK]
+Domain   = ""
+Keystone = ""
+Password = ""
+Project  = ""
+Region   = ""
+User     = ""
+
+[PROMETHEUS]
+Host          = "prometheus:9090"
+MetricsExport = true
+MetricsPort   = "9000"
+MetricsRoute  = "/metrics"
+
+[RGW]
+AccessKey       = ""
+AdminPath       = ""
+Region          = ""
+SecretAccessKey = ""
+ServerURL       = ""
+
+[SERVICES]
+CustomerDB   = "customerdb:8000"
+EventsEngine = "eventsengine:8000"

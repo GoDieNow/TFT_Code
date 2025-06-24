@@ -1,0 +1,96 @@
+# Welcome to the configuration file for this
+#
+#  ██████╗██╗   ██╗ ██████╗██╗      ██████╗ ██████╗ ███████╗
+# ██╔════╝╚██╗ ██╔╝██╔════╝██║     ██╔═══██╗██╔══██╗██╔════╝
+# ██║      ╚████╔╝ ██║     ██║     ██║   ██║██████╔╝███████╗
+# ██║       ╚██╔╝  ██║     ██║     ██║   ██║██╔═══╝ ╚════██║
+# ╚██████╗   ██║   ╚██████╗███████╗╚██████╔╝██║     ███████║
+#  ╚═════╝   ╚═╝    ╚═════╝╚══════╝ ╚═════╝ ╚═╝     ╚══════╝
+#
+# ██╗      █████╗ ██████╗ ███████╗
+# ██║     ██╔══██╗██╔══██╗██╔════╝
+# ██║     ███████║██████╔╝███████╗
+# ██║     ██╔══██║██╔══██╗╚════██║
+# ███████╗██║  ██║██████╔╝███████║
+# ╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝
+#
+# uService!
+
+[APIKEY]
+Enabled	= true
+Key     = "X-API-KEY"
+Place   = "header"
+Token   = "1234567890abcdefghi"
+
+[CREDIT]
+UsageInsteadOfCost = false
+
+[DATABASE]
+# Duration style: Xh, Xm, Xs...
+CacheRetention = "24h"
+DBName         = "cyclops"
+Host           = "db"
+Password       = "pass1234"
+Port           = 5432
+# SSLMode = enable | disable
+SSLMode        = "disable"
+UserName       = "cyclops"
+
+[EVENTS]
+Filters = [ "filter1", "filter2", "filter3" ]
+
+[GENERAL]
+CertificateFile    = "./cert.crt"
+CertificateKey     = "./key.key"
+CORSEnabled        = false
+CORSHeaders        = [ "*" ]
+CORSMethods        = [ "GET", "POST" ]
+CORSOrigins        = [ "" ]
+HttpsEnabled       = false
+InsecureSkipVerify = false
+LogFile            = ""
+# LogLevel = TRACE | DEBUG | INFO | WARNING | ERROR
+LogLevel           = "TRACE"
+LogToConsole       = true
+ServerPort         = 8000
+
+[GENERAL.SERVICES]
+Billing       = "billing:8000"
+CDR           = "cdr:8000"
+CreditSystem  = "creditsystem:8000"
+CustomerDB    = "customerdb:8000"
+EventsEngine  = "eventsengine:8000"
+PlanManager   = "planmanager:8000"
+UDR           = "udr:8000"
+
+[KAFKA]
+Brokers         = [ "kafka:19092" ]
+CDRIn           = [ "CDR" ]
+CDROut          = [ "Credit" ]
+Credit-SystemIn = [ "Credit" ]
+EventsEngineIn  = [ "Events" ]
+# -1 for the most recent
+# -2 for the first in the partition
+# Anyother for a specific offset
+Offset          = "-1"
+Partition       = "0"
+SizeMin         = 10e3
+SizeMax         = 10e6
+UDRIn           = [ "UDR" ]
+UDROut          = [ "CDR" ]
+
+[KEYCLOAK]
+ClientID     = "CyclopsDeploy"
+ClientSecret = ""
+Enabled      = true
+Host         = "keycloak"
+Port         = 8000
+Realm        = "Development"
+RedirectURL  = ""
+UseHttp      = true
+
+[PROMETHEUS]
+Host          = "prometheus:9090"
+MetricsExport = true
+MetricsPort   = "9000"
+MetricsRoute  = "/metrics"
